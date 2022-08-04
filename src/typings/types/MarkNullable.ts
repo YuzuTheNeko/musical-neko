@@ -1,0 +1,1 @@
+export type MarkNullable<Type, Required extends boolean> = Required extends false ? Type | null : Type

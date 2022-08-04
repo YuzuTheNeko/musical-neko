@@ -1,0 +1,1 @@
+export type Method<Args extends any[], Return = void> = (...args: Args) => Return

@@ -1,0 +1,1 @@
+export type MapValue<T> = T extends Map<any, infer A> ? A : never

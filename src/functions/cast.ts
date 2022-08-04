@@ -1,0 +1,1 @@
+export default <T>(t: unknown) => t as T 
