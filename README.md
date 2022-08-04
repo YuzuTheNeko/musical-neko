@@ -65,3 +65,5 @@ Place this file in `src` folder and name it `config.json`:
 }
 ```
 > Will respawn all bots, this will kill the current processes first if found.
+
+> All bash commands must be sent in JSON format.
