@@ -24,7 +24,7 @@ export default new Command({
         ],
         userInVoice: true 
     },
-    execute: async function(i, [ pos ]) {
+    execute: async function(m, [ pos ]) {
         let position: number
 
         try {
@@ -33,11 +33,10 @@ export default new Command({
             // We shouldn't be doing this, however a lot of dumb people exist within Discord.
             position = isNaN(rawPos) ? this.manager.parser.unsafeParseToMS(pos) : rawPos
         } catch (error) {
-            return void i.reply({
-                ephemeral: true,
+            return void m.channel.send({
                 embeds: [
                     this.embedError(
-                        i.user,
+                        m.author,
                         'Invalid Position',
                         `Given position (\`${removeBackticks(pos)}\`) is not valid`
                     )
@@ -45,19 +44,19 @@ export default new Command({
             }).catch(noop)
         }
 
-        const voice = this.manager.lavalink.guild(i.guildId)
+        const voice = this.manager.lavalink.guild(m.guildId)
         if (!voice) return;
 
-        i.reply({
+        m.channel.send({
             embeds: [
                 voice.seek(position) ? 
                 this.embedSuccess(
-                    i.user,
+                    m.author,
                     'Seek Success',
                     `Successfully seeked to given position`
                 ) : 
                 this.embedError(
-                    i.user,
+                    m.author,
                     `Seek Failed`,
                     `Failed to seek to given position`
                 )

@@ -1,4 +1,4 @@
-import { APIEmbed, Client, ClientOptions, ColorResolvable, Colors, EmbedData, UnsafeEmbedBuilder, User } from "discord.js";
+import { APIEmbed, Client, ClientOptions, ColorResolvable, Colors, EmbedData, EmbedBuilder, User } from "discord.js";
 import log from "../functions/log";
 import { NekoManager } from "./NekoManager";
 import config from "../config.json"
@@ -10,6 +10,10 @@ export class NekoClient extends Client<true> {
 
     constructor(options: ClientOptions) {
         super(options)
+    }
+
+    get prefix() {
+        return config.prefixes[this.index]
     }
 
     get index() {
@@ -37,7 +41,7 @@ export class NekoClient extends Client<true> {
         )
     }
     
-    embedSuccess(user: Nullable<User>, title: string, desc: string) {
+    embedSuccess(user: Nullable<User>, title: Nullable<string>, desc: string) {
         return this.embed(
             user,
             'Green',
@@ -46,8 +50,8 @@ export class NekoClient extends Client<true> {
         )
     }
 
-    embed(user: Nullable<User>, color: ColorResolvable, title: string, desc: string, other?: Partial<APIEmbed>) {
-        const embed = new UnsafeEmbedBuilder(other)
+    embed(user: Nullable<User>, color: ColorResolvable, title: Nullable<string>, desc: string, other?: Partial<APIEmbed>) {
+        const embed = new EmbedBuilder(other)
         .setColor(Colors[color as keyof typeof Colors] ?? color)
         .setDescription(desc)
         .setTimestamp()

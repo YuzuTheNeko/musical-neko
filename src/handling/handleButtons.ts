@@ -1,5 +1,6 @@
 import { ButtonInteraction } from "discord.js";
 import { NekoClient } from "../core/NekoClient";
+import handleBotDisconnect from "./buttons/handleBotDisconnect";
 import handleMusicBackward from "./buttons/handleMusicBackward";
 import handleMusicForward from "./buttons/handleMusicForward";
 import handleMusicLast from "./buttons/handleMusicLast";
@@ -13,6 +14,7 @@ export default function(client: NekoClient, i: ButtonInteraction<'cached'>) {
     handleMusicPause(client, i)
     handleMusicLast(client, i)
     handleMusicRecent(client, i)
+    handleBotDisconnect(client, i)
     handleMusicVolume(client, i)
     handleMusicSkip(client, i)
     handleMusicBackward(client, i)

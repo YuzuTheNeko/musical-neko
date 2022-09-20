@@ -1,8 +1,8 @@
-import { ActionRowBuilder, APIEmbedField, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, Guild, GuildMember, Message, MessageOptions, PermissionFlagsBits, StageChannel, TextBasedChannel, TextChannel, UnsafeButtonBuilder, UnsafeEmbedBuilder, User, VoiceChannel } from "discord.js";
+import { ActionRowBuilder, APIEmbedField, ButtonBuilder, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, EmbedBuilder, Guild, GuildMember, Message, MessageOptions, PermissionFlagsBits, StageChannel, TextBasedChannel, TextChannel, User, VoiceChannel } from "discord.js";
 import { CoffeeLava, CoffeeTrack, LavaEvents } from "lavacoffee";
 import { FilterUtils, LoadTypes, SearchQuery, SearchResult } from "lavacoffee/dist/utils";
 import { runInThisContext } from "vm";
-import { IDLE_TIMEOUT, MAX_VOLUME, MIN_VOLUME, TRACK_BACKWARD, TRACK_ERROR, TRACK_FAVORITE, TRACK_FIRST, TRACK_FORWARD, TRACK_LAST, TRACK_PAUSE, TRACK_REPLAY, TRACK_SKIP, TRACK_VOLUME } from "../constants";
+import { BOT_DISCONNECT, IDLE_TIMEOUT, MAX_VOLUME, MIN_VOLUME, TRACK_BACKWARD, TRACK_ERROR, TRACK_FAVORITE, TRACK_FIRST, TRACK_FORWARD, TRACK_LAST, TRACK_PAUSE, TRACK_REPLAY, TRACK_SKIP, TRACK_VOLUME } from "../constants";
 import { Lavalink } from "../core/Lavalink";
 import { NekoClient } from "../core/NekoClient";
 import getTrackLyrics from "../functions/getTrackLyrics";
@@ -177,7 +177,7 @@ export class VoiceGuild {
         return this.queue[this.position - 1]
     }
 
-    async send(embed: UnsafeEmbedBuilder, components: ActionRowBuilder[] = []): Promise<Nullable<Message>> {
+    async send(embed: EmbedBuilder, components: ActionRowBuilder[] = []): Promise<Nullable<Message>> {
         this.lastMessage?.delete().catch(noop)
         
         const msg = await this.channel?.send({
@@ -218,7 +218,7 @@ export class VoiceGuild {
                 if (counter.length >= this.requiredVotes) {
                     this.forceSkip()
                 } else if (this.lastMessage) {
-                    const embed = new UnsafeEmbedBuilder({ ...this.lastMessage.embeds[0].data })
+                    const embed = new EmbedBuilder({ ...this.lastMessage.embeds[0].data })
                     embed.addFields(this.skipField)
 
                     this.lastMessage.edit({
@@ -444,10 +444,10 @@ export class VoiceGuild {
         if (ch) {
             const thumbnail = track.displayThumbnail('default')
 
-            const rows = new Array<ActionRowBuilder<UnsafeButtonBuilder>>(
-                new ActionRowBuilder<UnsafeButtonBuilder>()
+            const rows = new Array<ActionRowBuilder<ButtonBuilder>>(
+                new ActionRowBuilder<ButtonBuilder>()
                 .addComponents(
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name:'⏪'
                         },
@@ -455,7 +455,7 @@ export class VoiceGuild {
                         custom_id: TRACK_FIRST,
                         type: ComponentType.Button
                     }), 
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name:'◀️'
                         },
@@ -463,7 +463,7 @@ export class VoiceGuild {
                         custom_id: TRACK_BACKWARD,
                         type: ComponentType.Button
                     }),
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name:'⏸️'
                         },
@@ -471,7 +471,7 @@ export class VoiceGuild {
                         custom_id: TRACK_PAUSE,
                         type: ComponentType.Button
                     }),
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name:'▶️'
                         },
@@ -479,7 +479,7 @@ export class VoiceGuild {
                         custom_id: TRACK_FORWARD,
                         type: ComponentType.Button
                     }),
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name:'⏩'
                         },
@@ -488,16 +488,15 @@ export class VoiceGuild {
                         type: ComponentType.Button
                     })
                 ),
-                new ActionRowBuilder<UnsafeButtonBuilder>()
+                new ActionRowBuilder<ButtonBuilder>()
                 .addComponents(
-                    new UnsafeButtonBuilder({
-                        label: '\u200b',
-                        style: ButtonStyle.Secondary,
-                        custom_id: `empty_1`,
-                        disabled: true,
+                    new ButtonBuilder({
+                        label: '🚪',
+                        style: ButtonStyle.Danger,
+                        custom_id: BOT_DISCONNECT,
                         type: ComponentType.Button
                     }),
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name:'🔊'
                         },
@@ -505,7 +504,7 @@ export class VoiceGuild {
                         custom_id: TRACK_VOLUME,
                         type: ComponentType.Button
                     }),
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name: '💟'
                         },
@@ -513,7 +512,7 @@ export class VoiceGuild {
                         custom_id: TRACK_FAVORITE,
                         type: ComponentType.Button
                     }),
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name:'🔁'
                         },
@@ -521,7 +520,7 @@ export class VoiceGuild {
                         custom_id: TRACK_REPLAY,
                         type: ComponentType.Button
                     }),
-                    new UnsafeButtonBuilder({
+                    new ButtonBuilder({
                         emoji: {
                             name: '⏭️'
                         }, 

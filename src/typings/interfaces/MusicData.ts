@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction } from "discord.js"
+import { ChatInputCommandInteraction, Message } from "discord.js"
 import { NekoClient } from "../../core/NekoClient"
 import { InteractionResolvable } from "../../structures/Command"
 import { PlayerState } from "../enums/PlayerState"
@@ -27,5 +27,5 @@ export interface MusicData {
     /**
      * A custom validator.
      */
-    validator?: (this: NekoClient, command: InteractionResolvable, sendMessage: boolean) => boolean | Promise<boolean>
+    validator?: (this: NekoClient, command: Message<true> | InteractionResolvable, sendMessage: boolean) => boolean | Promise<boolean>
 }

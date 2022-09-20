@@ -17,8 +17,7 @@
   "dependencies": {
     "arg-capturer": "^4.0.2",
     "chalk": "^4.1.2",
-    "dbdts.db": "^4.4.1",
-    "discord.js": "^14.0.0-dev.1654689812-1afae90",
+    "discord.js": "^14.3.0",
     "genius-lyrics": "^4.3.8",
     "lavacoffee": "^1.6.0",
     "ms-utility": "^3.3.0"

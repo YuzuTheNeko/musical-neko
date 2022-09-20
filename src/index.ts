@@ -1,4 +1,4 @@
-import { GatewayIntentBits } from "discord.js";
+import { disableValidators, GatewayIntentBits } from "discord.js";
 import { NekoClient } from "./core/NekoClient";
 
 const client = new NekoClient({
@@ -8,6 +8,8 @@ const client = new NekoClient({
         GatewayIntentBits.GuildMessages | 
         GatewayIntentBits.GuildVoiceStates
 })
+
+disableValidators()
 
 client.manager.loadEvents()
 

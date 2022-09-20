@@ -1,3 +1,4 @@
+import { ArgParser, StringFlagParser } from "arg-capturer";
 import { LoadTypes, SearchPlatform } from "lavacoffee/dist/utils";
 import noop from "../../functions/noop";
 import removeBackticks from "../../functions/removeBackticks";
@@ -17,33 +18,24 @@ export default new Command({
             autocomplete: true,
             required: true
         },
-        {
-            name: 'source',
-            type: ArgType.Enum,
-            required: false,
-            enum: SourceType,
-            enumValues: 'string',
-            description: 'The source to use for this search, do not use if you will use an url',
-            default: () => SourceType.Youtube
-        }
     ],
+    flags: new ArgParser(false, {
+        source: new StringFlagParser()
+    }),
     music: {
         userInVoice: true,
         mustMatchVoice: true 
     },
-    execute: async function(i, [ query, source ]) {
-        await i.deferReply()
-            .catch(noop)
-        
-        const voice = VoiceGuild.orDefault(i.guild)
-            .setChannel(i.channel)
-            .setVoice(i.member.voice.channel!)
+    execute: async function(m, [ query ], extras) {        
+        const voice = VoiceGuild.orDefault(m.guild)
+            .setChannel(m.channel)
+            .setVoice(m.member?.voice.channel!)
 
         if (!voice) {
-            return void i.editReply({
+            return void m.channel.send({
                 embeds: [
                     this.embedError(
-                        i.user,
+                        m.author,
                         `Node Error`,
                         `A player for this guild could not be created, please try again later!`
                     )
@@ -51,18 +43,18 @@ export default new Command({
             }).catch(noop)
         }
 
-        const found = await voice.search(i.user, {
+        const found = await voice.search(m.author, {
             query,
-            source: source as SearchPlatform
+            source: extras.flags.source as SearchPlatform ?? 'yt'
         })
 
         const title = voice.enqueue(found)
 
         if (title === null) {
-            i.editReply({
+            m.channel.send({
                 embeds: [
                     this.embedError(
-                        i.user,
+                        m.author,
                         `Load Error`,
                         `Could not find any song with given query: \`${query}\``
                     )
@@ -74,10 +66,10 @@ export default new Command({
 
         voice.tryPlay()
 
-        i.editReply({
+        m.channel.send({
             embeds: [
                 this.embedSuccess(
-                    i.user,
+                    m.author,
                     found?.loadType === LoadTypes.PlaylistLoaded ? `Playlist Added` : `Track Added`,
                     `Successfully added \`${removeBackticks(title)}\` to the queue`
                 )

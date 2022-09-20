@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonInteraction, ComponentType, TextInputStyle, UnsafeModalBuilder, UnsafeTextInputBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonInteraction, ComponentType, TextInputStyle, ModalBuilder, TextInputBuilder } from "discord.js";
 import { TRACK_LAST, TRACK_VOLUME, TRACK_VOLUME_MODAL, UNNEEDED_CUSTOM_ID } from "../../constants";
 import { NekoClient } from "../../core/NekoClient";
 import noop from "../../functions/noop";
@@ -15,13 +15,12 @@ export default async function(client: NekoClient, i: ButtonInteraction<'cached'>
 
     if (!voice.manageableBy(i.member, undefined, i)) return;
     
-    const modal = new UnsafeModalBuilder({
-        title: `Volume Form`,
-        custom_id: TRACK_VOLUME_MODAL
-    })
+    const modal = new ModalBuilder()
+    .setTitle(`Volume Form`)
+    .setCustomId(TRACK_VOLUME_MODAL)
     .addComponents(
-        new ActionRowBuilder<UnsafeTextInputBuilder>().addComponents(
-            new UnsafeTextInputBuilder({
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+            new TextInputBuilder({
                 custom_id: UNNEEDED_CUSTOM_ID(),
                 label: `Volume`,
                 style: TextInputStyle.Short,

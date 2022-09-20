@@ -1,3 +1,4 @@
+import { ArgParser, NumberFlagParser } from "arg-capturer";
 import { inspect } from "util";
 import { Command } from "../../structures/Command";
 import { ArgType } from "../../typings/enums/ArgType";
@@ -11,18 +12,12 @@ export default new Command({
             required: true,
             type: ArgType.String,
             description: "The code to evaluate"
-        },
-        {
-            name: 'depth',
-            required: false,
-            description: 'The depth of the object',
-            type: ArgType.Number,
-            default: () => 0
         }
     ],
-    execute: async function(interaction, [ code, depth ]) {
-        await interaction.deferReply()
-
+    flags: new ArgParser(false, {
+        depth: new NumberFlagParser()
+    }),
+    execute: async function(m, [ code ], extras) {
         let val;
 
         try {
@@ -31,9 +26,9 @@ export default new Command({
             val = error.stack 
         }
 
-        if (typeof val === 'object') val = inspect(val, { depth })
+        if (typeof val === 'object') val = inspect(val, { depth: extras.flags.depth ?? 0 })
 
-        await interaction.editReply({
+        await m.channel.send({
             content: `\`\`\`js\n${val}\`\`\``
         })
     }

@@ -71,44 +71,6 @@ export class NekoManager {
         }
     }
 
-    asSlashCommands(include?: string[], exclude?: string[]): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
-        const arr = new Array<RESTPostAPIChatInputApplicationCommandsJSONBody>()
-
-        if (this.commands.size === 0) this.loadCommands()
-
-        for (const folder of readdirSync(`dist/commands`)) {
-            if (include !== undefined && !include.includes(folder)) {
-                continue
-            }
-
-            if (exclude !== undefined && exclude.includes(folder)) {
-                continue
-            }
-
-            const commands = this.commands.filter(c => c.category === folder)
-
-            if (commands.size === 0) {
-                continue
-            }
-
-            const initial: RESTPostAPIChatInputApplicationCommandsJSONBody = {
-                name: folder,
-                dm_permission: false,
-                description: `${toTitleCase(folder)} Commands (${commands.size.toLocaleString()})`,
-                type: ApplicationCommandType.ChatInput,
-                options: []
-            }
-
-            for (const [, command] of commands) {
-                initial.options!.push(command.asSlashOption())
-            }
-
-            arr.push(initial)
-        }
-
-        return arr 
-    }
-
     log(...args: unknown[]) {
         log('MANAGER', ...args)
     }

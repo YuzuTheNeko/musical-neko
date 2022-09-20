@@ -6,6 +6,7 @@ export const TRACK_PAUSE = 'track_pause' as const
 export const TRACK_FORWARD = 'track_forward' as const 
 export const TRACK_BACKWARD = 'track_backward' as const 
 export const TRACK_FIRST = 'track_first' as const 
+export const BOT_DISCONNECT = `bot_disconnect` as const 
 export const TRACK_LAST = 'track_last' as const 
 export const TRACK_FAVORITE = 'track_favorite' as const 
 export const TRACK_VOLUME = 'track_volume' as const 
