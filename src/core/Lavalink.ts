@@ -28,6 +28,10 @@ export class Lavalink {
         }
     }
 
+    get stats() {
+        return this.server.leastLoadNode!.stats
+    }
+
     add(...params: SkipFirstParameter<ConstructorParameters<typeof VoiceGuild>>) {
         const existing = this.guild(params[0])
         if (existing) return existing

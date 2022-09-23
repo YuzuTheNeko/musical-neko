@@ -1,30 +1,20 @@
-import { ArgParser, StringFlagParser } from "arg-capturer";
-import { LoadTypes, SearchPlatform } from "lavacoffee/dist/utils";
-import noop from "../../functions/noop";
-import removeBackticks from "../../functions/removeBackticks";
-import { Command } from "../../structures/Command";
-import { VoiceGuild } from "../../structures/VoiceGuild";
-import { ArgType } from "../../typings/enums/ArgType";
-import { SourceType } from "../../typings/enums/SourceType";
+import noop from "../../functions/noop"
+import removeBackticks from "../../functions/removeBackticks"
+import { Command } from "../../structures/Command"
+import { VoiceGuild } from "../../structures/VoiceGuild"
+import { ArgType } from "../../typings/enums/ArgType"
 
 export default new Command({
-    name: `play`,
-    aliases: [
-        "p"
-    ],
-    description: "Plays a command from a given url or search",
+    name: `speak`,
+    description: "Speaks something you say",
     args: [
         {
-            name: `song`,
-            description: `Song url or query`,
+            name: `tts`,
+            description: `what to say`,
             type: ArgType.String,
-            autocomplete: true,
             required: true
         },
     ],
-    flags: new ArgParser(false, {
-        source: new StringFlagParser()
-    }),
     music: {
         userInVoice: true,
         mustMatchVoice: true 
@@ -46,12 +36,23 @@ export default new Command({
             }).catch(noop)
         }
 
-        const found = await voice.search(m.author, {
-            query,
-            source: extras.flags.source as SearchPlatform ?? 'yt'
+        const track = await this.manager.lavalink.search(m.author, {
+            query: "speak:" + query, 
+            source: "" as any
         })
+        
+        if (!track) return void m.channel.send({
+            embeds: [
+                this.embedError(
+                    m.author,
+                    `TTS Failed`,
+                    `Unknwon Error`
+                )
+            ]
+        })
+        .catch(noop)
 
-        const title = voice.enqueue(found)
+        const title = voice.enqueue(track)
 
         if (title === null) {
             m.channel.send({
@@ -73,7 +74,7 @@ export default new Command({
             embeds: [
                 this.embedSuccess(
                     m.author,
-                    found?.loadType === LoadTypes.PlaylistLoaded ? `Playlist Added` : `Track Added`,
+                    `TTS added`,
                     `Successfully added \`${removeBackticks(title)}\` to the queue`
                 )
             ]

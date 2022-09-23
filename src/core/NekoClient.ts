@@ -7,7 +7,7 @@ import { argv } from "process";
 
 export class NekoClient extends Client<true> {
     manager = new NekoManager(this)
-
+    
     constructor(options: ClientOptions) {
         super(options)
     }

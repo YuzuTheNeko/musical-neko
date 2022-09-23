@@ -13,6 +13,12 @@ export const TRACK_VOLUME = 'track_volume' as const
 export const TRACK_REPLAY = 'track_replay' as const 
 export const TRACK_SKIP = 'track_skip' as const 
 
+export const QUEUE_NEXT_ID = `queue_next` as const 
+export const QUEUE_BACK_ID = `queue_back` as const 
+
+export const QUEUE_NEXT = (id: string, page: number) => `${QUEUE_NEXT_ID}_${page}_${id}` as const
+export const QUEUE_BACK = (id: string, page: number) => `${QUEUE_BACK_ID}_${page}_${id}` as const 
+
 export const MAX_VOLUME = 200 as const 
 export const MIN_VOLUME = 0 as const 
 

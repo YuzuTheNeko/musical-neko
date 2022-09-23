@@ -1,4 +1,4 @@
-import { ApplicationCommandType, ClientEvents, Collection, RESTPostAPIChatInputApplicationCommandsJSONBody } from "discord.js";
+import { ApplicationCommandType, ClientEvents, Collection, PermissionFlagsBits, PermissionsBitField, RESTPostAPIChatInputApplicationCommandsJSONBody } from "discord.js";
 import { readdirSync } from "fs";
 import { Client } from "genius-lyrics";
 import log from "../functions/log";
@@ -10,9 +10,14 @@ import { Lavalink } from "./Lavalink";
 import { NekoClient } from "./NekoClient";
 import config from "../config.json";
 import Parser from "ms-utility";
+import { execSync } from "child_process";
 
 export class NekoManager {
     lavalink: Lavalink
+    permissions = new PermissionsBitField(
+        config.permissions.reduce((x, y) => x + PermissionFlagsBits[y as keyof typeof PermissionFlagsBits] as bigint, 0n)
+    )
+
     genius = new Client(config.geniusAccessToken)
     parser = new Parser()
 
@@ -47,6 +52,7 @@ export class NekoManager {
 
     loadCommands(refresh = false) {
         if (refresh) {
+            execSync(`tsc`)
             this.commands.clear()
         }
 

@@ -15,8 +15,7 @@ export default async function(client: NekoClient, i: ButtonInteraction<'cached'>
 
     if (!voice.hasMessage()) return;
 
-    const counter = voice.skipCounter
-    if (counter.includes(i.user.id)) {
+    if (!voice.vote(i.member!)) {
         return void i.reply({
             ephemeral: true,
             embeds: [
@@ -29,9 +28,6 @@ export default async function(client: NekoClient, i: ButtonInteraction<'cached'>
         })
         .catch(noop)
     }
-
-    counter.push(i.user.id)
-    voice["onCounterUpdate"](CountType.Skip, counter)
 
     i.reply({
         embeds: [

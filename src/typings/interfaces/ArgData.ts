@@ -10,7 +10,10 @@ export type DefaultMethod<Type extends ArgType, Enum extends EnumLike, Choices e
 export interface ArgData<Type extends ArgType = ArgType, Required extends boolean = boolean, Enum extends EnumLike = EnumLike, Choices extends string[] = string[]> {
     name: string
     description: string
+    min?: number
+    max?: number
     type: Type
+    float?: boolean
     autocomplete?: boolean
     enum?: Enum
     choices?: Choices

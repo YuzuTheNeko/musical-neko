@@ -6,6 +6,9 @@ import { ArgType } from "../../typings/enums/ArgType";
 export default new Command({
     name: 'eval',
     description: 'evals a code',
+    flags: new ArgParser(false, { 
+        depth: new NumberFlagParser()
+    }),
     args: [
         {
             name: 'code',
@@ -14,9 +17,6 @@ export default new Command({
             description: "The code to evaluate"
         }
     ],
-    flags: new ArgParser(false, {
-        depth: new NumberFlagParser()
-    }),
     execute: async function(m, [ code ], extras) {
         let val;
 

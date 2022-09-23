@@ -14,8 +14,6 @@ export interface CommandData<Args extends [...ArgData[]], Flags = {}> {
     description: string
     flags?: ArgParser<Flags>
     aliases?: string[]
-    min?: number
-    max?: number
     category?: string
     args?: [...Args]
     music?: MusicData

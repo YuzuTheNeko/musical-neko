@@ -9,6 +9,7 @@ import handleMusicRecent from "./buttons/handleMusicRecent";
 import handleMusicReplay from "./buttons/handleMusicReplay";
 import handleMusicSkip from "./buttons/handleMusicSkip";
 import handleMusicVolume from "./buttons/handleMusicVolume";
+import handleQueue from "./buttons/handleQueue";
 
 export default function(client: NekoClient, i: ButtonInteraction<'cached'>) {
     handleMusicPause(client, i)
@@ -19,5 +20,6 @@ export default function(client: NekoClient, i: ButtonInteraction<'cached'>) {
     handleMusicSkip(client, i)
     handleMusicBackward(client, i)
     handleMusicForward(client, i)
+    handleQueue(client, i)
     handleMusicReplay(client, i)
 }

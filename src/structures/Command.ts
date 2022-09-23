@@ -1,5 +1,4 @@
 import { ArgParser } from "arg-capturer";
-import cast from "dbdts.db/dist/functions/cast";
 import { APIApplicationCommand, APIApplicationCommandOption, APIApplicationCommandSubcommandOption, APIEmbedField, ApplicationCommandChoicesData, ApplicationCommandOptionChoiceData, ApplicationCommandOptionType, AutocompleteInteraction, ButtonInteraction, ChatInputCommandInteraction, EmbedBuilder, Interaction, InteractionResponseFields, Message, ModalSubmitInteraction, SelectMenuInteraction } from "discord.js";
 import { VOICE_ERROR } from "../constants";
 import { NekoClient } from "../core/NekoClient";
@@ -54,7 +53,7 @@ export class Command<Args extends [...ArgData[]] = ArgData[], Flags = {}> {
         client: NekoClient,
         message: Message<true>,
         arg: ArgData,
-        currentValue: string,
+        currentValue: string = '',
         reason: RejectArgReason 
     ): false {
         const embed = client.embedError(
@@ -72,23 +71,33 @@ export class Command<Args extends [...ArgData[]] = ArgData[], Flags = {}> {
                 value: arg.name,
                 inline: true 
             },
+            
             {
                 name: `Type`,
                 inline: true,
                 value: ArgType[arg.type]
-            },
-            {
-                inline: true,
-                name: `Received`,
-                value: currentValue.slice(0, 256) || `None given`
             }
         ]
+
+        if (arg.enum) {
+            fields.push({
+                inline: true,
+                name: `Possible Choices`,
+                value: Object.values(arg.enum).filter(c => isNaN(c)).join('\n')
+            })
+        }
+
+        fields.push({
+            inline: true,
+            name: `Received`,
+            value: currentValue.slice(0, 256) || `None given`
+        })
         
-        if (this.data.min !== undefined || this.data.max !== undefined) {
+        if (arg.min !== undefined || arg.max !== undefined) {
             fields.push({
                 inline: true,
                 name: `Range`,
-                value: `${this.data.min?.toLocaleString() ?? '?'} - ${this.data.max?.toLocaleString() ?? `?`}`
+                value: `${arg.min?.toLocaleString() ?? '?'} - ${arg.max?.toLocaleString() ?? `?`}`
             })
         }
 
@@ -115,24 +124,29 @@ export class Command<Args extends [...ArgData[]] = ArgData[], Flags = {}> {
 
         for (let i = 0, len = this.data.args.length;i < len;i++) {
             const arg = this.data.args[i]
-            let current = args[i]
+            let current = (i + 1 === len ? args.slice(i).join(' ') : args[i]) || await arg.default?.call(client, message)
             
+            if (current !== undefined && typeof current !== 'string') {
+                arr.push(current)
+                continue
+            }
+
             const reject = this.rejectArgs.bind(this, client, message, arg, current)
 
-            if (arg.required && !(current ||= await arg.default?.call(client, message))) {
+            if (arg.required && !current) {
                 return reject(RejectArgReason.Required)
             }
 
             let data: any = current
 
-            if (!data || typeof data !== 'string') {
-                arr.push(data || null)
+            if (!data) {
+                arr.push(null)
                 continue
             }
 
             switch (arg.type) {
                 case ArgType.Enum: {
-                    const got = ArgType[data as keyof typeof ArgType]
+                    const got = arg.enum![data as keyof typeof arg.enum]
                     if (got === undefined) return reject(RejectArgReason.Choice)
                     data = got 
                     break
@@ -143,9 +157,9 @@ export class Command<Args extends [...ArgData[]] = ArgData[], Flags = {}> {
                 }
 
                 case ArgType.Number: {
-                    const parsed = parseInt(data)
+                    const parsed = arg.float ? Number(data) : parseInt(data)
                     if (isNaN(parsed)) return reject(RejectArgReason.Invalid)
-                    if ((this.data.min !== undefined && this.data.min > parsed) || (this.data.max !== undefined && this.data.max < parsed)) {
+                    if ((arg.min !== undefined && arg.min > parsed) || (arg.max !== undefined && arg.max < parsed)) {
                         return reject(RejectArgReason.Range)
                     } 
 

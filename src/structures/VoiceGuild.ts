@@ -314,8 +314,8 @@ export class VoiceGuild {
         return this 
     }
 
-    editFilters(edit: (f: FilterUtils) => FilterUtils) {
-        this.filters = edit(this.filters)
+    editFilters(edit: (f: FilterUtils) => any) {
+        edit(this.filters) 
         if (this.player) {
             this.player.filters = this.filters.build()
             this.player.patchFilters()
@@ -344,21 +344,29 @@ export class VoiceGuild {
         return true 
     }
 
-    manageableBy(member: GuildMember, track = this.getCurrentTrack(), i?: InteractionResolvable) 
+    manageableBy(member: GuildMember, track = this.getCurrentTrack(), i?: InteractionResolvable | Message) 
     {
-        const bool = track && (member.permissions.has(PermissionFlagsBits.Administrator) || this.getTrackRequester(track)?.id === member.id)
+        const bool = track && (member.permissions.any(this.client.manager.permissions) || this.getTrackRequester(track)?.id === member.id)
         if (!bool && i) {
-            i.reply({
-                ephemeral: true,
-                embeds: [
-                    this.client.embedError(
-                        i.user,
-                        `Permission Error`,
-                        `Only the person who requested this track can do this!`
-                    )
-                ]
-            })
-            .catch(noop)
+            const embeds = [
+                this.client.embedError(
+                    i instanceof Message ? i.author : i.user,
+                    `Permission Error`,
+                    `Only the person who requested this track can do this!`
+                )
+            ]
+
+            if (i instanceof Message) {
+                i.reply({
+                    embeds 
+                })
+                .catch(noop)
+            } else {
+                i.channel?.send({
+                    embeds 
+                })
+                .catch(noop)
+            }
         }
 
         return bool  
@@ -424,6 +432,29 @@ export class VoiceGuild {
     stop(reason: TrackEndReasons) {
         this.reason = reason 
         return this.player?.stop()
+    }
+
+    shuffle() {
+        for (let i = 0, len = this.queue.length;i < len;i++) {
+            const track = this.queue[i]
+            const rnd = Math.floor(Math.random() * this.queue.length)
+            const other = this.queue[rnd]
+            this.queue[i] = other
+            this.queue[rnd] = track
+        }
+    }
+
+    vote(by: GuildMember): boolean {
+        const counter = this.skipCounter
+        const trk = this.getCurrentTrack()
+        if ((trk?.requester as User).id === by.id || by.permissions.any(this.client.manager.permissions)) {
+            this.forceSkip()
+            return true
+        }
+        if (counter.includes(by.id)) return false
+        counter.push(by.id)
+        this.onCounterUpdate(CountType.Skip, counter)
+        return true 
     }
 
     private async onTrackStart(...params: Parameters<LavaEvents["trackStart"]>) {

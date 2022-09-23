@@ -47,6 +47,6 @@ export default async function(client: NekoClient, message: Message<true>) {
         })
         .catch(noop)
 
-        log('ERROR', `An exception occurred while running command ${command.name} for user ${message.author.tag} (${message.author.id}) in guild ${message.guild.name} (${message.guildId}):\n`, error.stack)
+        log('ERROR', `An exception occurred while running command ${command.name} for user ${message.author.tag} (${message.author.id}) in guild ${message.guild.name} (${message.guildId}):\n`, error)
     }
 }
