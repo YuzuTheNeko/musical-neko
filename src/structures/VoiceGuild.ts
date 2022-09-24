@@ -1,4 +1,4 @@
-import { ActionRowBuilder, APIEmbedField, ButtonBuilder, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, EmbedBuilder, Guild, GuildMember, Message, MessageOptions, PermissionFlagsBits, StageChannel, TextBasedChannel, TextChannel, User, VoiceChannel } from "discord.js";
+import { ActionRowBuilder, APIEmbedField, ButtonBuilder, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, EmbedBuilder, Guild, GuildMember, Message, MessageOptions, PermissionFlagsBits, SelectMenuBuilder, SelectMenuInteraction, StageChannel, TextBasedChannel, TextChannel, User, VoiceChannel } from "discord.js";
 import { CoffeeLava, CoffeeTrack, LavaEvents } from "lavacoffee";
 import { FilterUtils, LoadTypes, SearchQuery, SearchResult } from "lavacoffee/dist/utils";
 import { runInThisContext } from "vm";
@@ -52,6 +52,11 @@ export class VoiceGuild {
             if (value === undefined) continue
             this[key as '24/7'] = value as boolean 
         }
+    }
+
+    clearFilters() {
+        this.filters = new FilterUtils({})
+        this.editFilters(() => {})
     }
 
     get guild() {
@@ -240,7 +245,7 @@ export class VoiceGuild {
         }
     }
 
-    enqueue(result: Nullable<SearchResult>): Nullable<string> {
+    async enqueue(result: Nullable<SearchResult>, m?: Message<true>): Promise<Nullable<undefined | string>> {
         if (!result || !result.tracks.length) return null 
 
         const queue = this.queue
@@ -253,9 +258,74 @@ export class VoiceGuild {
         if (result.loadType === LoadTypes.PlaylistLoaded) {
             queue.push(...result.tracks)
             return `${result.playlist!.name} (${toPluralAmount('track', result.tracks.length)})`
-        } else if (result.loadType === LoadTypes.SearchResult || result.loadType === LoadTypes.TrackLoaded) {
+        } else if (result.loadType === LoadTypes.TrackLoaded || (!m && result.loadType === LoadTypes.SearchResult)) {
             queue.push(result.tracks[0])
             return result.tracks[0].title
+        } else if (result.loadType === LoadTypes.SearchResult && m) {
+            const embed = this.client.embedSuccess(
+                m.author,
+                `Search Results`,
+                result.tracks.slice(0, 10).map(
+                    (x, y) => `**\`[${y + 1}]\`** - [${x.title}](${x.url})`
+                ).join('\n')
+            )
+
+            embed.setFooter({
+                text: `Pick one in the select menu.`
+            })
+
+            const id = `select_song_${m.author.id}` as const 
+
+            const msg = await m.channel.send({
+                embeds: [
+                    embed
+                ],
+                components: [
+                    new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+                        new SelectMenuBuilder({
+                            maxValues: 1,
+                            minValues: 1,
+                            customId: id,
+                            options: result.tracks.slice(0, 10).map((x, y) => ({
+                                label: x.title,
+                                value: y.toString(),
+                                description: `Song #${y + 1}`
+                            }))
+                        })
+                    )
+                ]
+            })
+            .catch(noop)
+
+            if (!msg) return null 
+
+            const answer = await msg.awaitMessageComponent(
+                {
+                    filter: i => {
+                        return i.customId === id
+                    },
+                    time: 15_000
+                }
+            ).catch(noop)
+
+            if (!answer) {
+                msg.edit({
+                    embeds: [
+                        embed.setColor('Red')
+                        .setDescription(`This selection has expired...`)
+                    ],
+                    components: []
+                })
+                .catch(noop)
+                return undefined
+            } 
+
+            msg.delete()
+            .catch(noop)
+            
+            const got = result.tracks[(answer as SelectMenuInteraction).values[0] as unknown as number]
+            queue.push(got)
+            return got.title
         }
 
         return null 
@@ -346,7 +416,7 @@ export class VoiceGuild {
 
     manageableBy(member: GuildMember, track = this.getCurrentTrack(), i?: InteractionResolvable | Message) 
     {
-        const bool = track && (member.permissions.any(this.client.manager.permissions) || this.getTrackRequester(track)?.id === member.id)
+        const bool =!track || (track && (member.permissions.any(this.client.manager.permissions) || this.getTrackRequester(track)?.id === member.id))
         if (!bool && i) {
             const embeds = [
                 this.client.embedError(

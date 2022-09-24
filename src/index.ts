@@ -1,4 +1,4 @@
-import { disableValidators, GatewayIntentBits } from "discord.js";
+import { disableValidators, GatewayIntentBits, Partials } from "discord.js";
 import { NekoClient } from "./core/NekoClient";
 
 const client = new NekoClient({
@@ -6,7 +6,16 @@ const client = new NekoClient({
         GatewayIntentBits.Guilds | 
         GatewayIntentBits.MessageContent | 
         GatewayIntentBits.GuildMessages | 
-        GatewayIntentBits.GuildVoiceStates
+        GatewayIntentBits.GuildVoiceStates,
+    partials: [
+        Partials.Channel,
+        Partials.GuildMember,
+        Partials.GuildScheduledEvent,
+        Partials.Message,
+        Partials.Reaction,
+        Partials.ThreadMember,
+        Partials.User
+    ]
 })
 
 disableValidators()

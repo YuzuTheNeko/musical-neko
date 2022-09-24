@@ -51,10 +51,14 @@ export default new Command({
             source: extras.flags.source as SearchPlatform ?? 'yt'
         })
 
-        const title = voice.enqueue(found)
+        const title = await voice.enqueue(found, m)
 
+        if (title === undefined) {
+            return;
+        }
+        
         if (title === null) {
-            m.channel.send({
+            return void m.channel.send({
                 embeds: [
                     this.embedError(
                         m.author,
@@ -63,8 +67,7 @@ export default new Command({
                     )
                 ]
             })
-                .catch(noop)
-            return;
+            .catch(noop)
         }
 
         voice.tryPlay()
@@ -78,6 +81,6 @@ export default new Command({
                 )
             ]
         })
-            .catch(noop)
+        .catch(noop)
     }
 })

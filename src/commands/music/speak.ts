@@ -52,7 +52,7 @@ export default new Command({
         })
         .catch(noop)
 
-        const title = voice.enqueue(track)
+        const title = await voice.enqueue(track)
 
         if (title === null) {
             m.channel.send({
@@ -75,7 +75,7 @@ export default new Command({
                 this.embedSuccess(
                     m.author,
                     `TTS added`,
-                    `Successfully added \`${removeBackticks(title)}\` to the queue`
+                    `Successfully added \`${removeBackticks(title!)}\` to the queue`
                 )
             ]
         })
