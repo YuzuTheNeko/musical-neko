@@ -6,6 +6,9 @@ import { ArgType } from "../../typings/enums/ArgType"
 
 export default new Command({
     name: `speak`,
+    aliases: [
+        "tts"
+    ],
     description: "Speaks something you say",
     args: [
         {
