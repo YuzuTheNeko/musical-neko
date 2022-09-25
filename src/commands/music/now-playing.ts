@@ -22,7 +22,7 @@ export default new Command({
         const voice = this.manager.lavalink.guild(m.guildId)
         if (!voice) return;
         
-        const trk = voice.getCurrentTrack()!
+        const trk = (await voice.getCurrentTrack())!
 
         const embed = this.embedSuccess(
             m.author,
@@ -50,11 +50,18 @@ export default new Command({
             }
         ])
 
-        m.channel.send({
+        const msg = await m.channel.send({
             embeds: [
                 embed
-            ]
+            ],
+            components: voice.makeButtons()
         })
         .catch(noop)
+
+        if (!msg) return; 
+
+        voice.lastMessage?.delete()
+        .catch(noop)
+        voice.lastMessage = msg 
     }
 })

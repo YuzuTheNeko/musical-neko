@@ -22,7 +22,7 @@ export default new Command({
 
         m.channel.sendTyping().catch(noop)
 
-        const track = voice.getCurrentTrack()!
+        const track = (await voice.getCurrentTrack())!
 
         const lyrics = await voice.getTrackLyrics(track).catch(noop)
 

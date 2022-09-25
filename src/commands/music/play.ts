@@ -70,7 +70,7 @@ export default new Command({
             .catch(noop)
         }
 
-        voice.tryPlay()
+        await voice.tryPlay()
 
         m.channel.send({
             embeds: [

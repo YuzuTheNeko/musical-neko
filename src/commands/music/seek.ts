@@ -49,7 +49,7 @@ export default new Command({
 
         m.channel.send({
             embeds: [
-                voice.seek(position) ? 
+                await voice.seek(position) ? 
                 this.embedSuccess(
                     m.author,
                     'Seek Success',

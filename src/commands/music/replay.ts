@@ -17,10 +17,10 @@ export default new Command({
         const voice = this.manager.lavalink.guild(m.guildId)
         if (!voice) return;
 
-        if (!voice.manageableBy(m.member!, undefined, m)) return;
+        if (!(await voice.manageableBy(m.member!, undefined, m))) return;
     
         voice.setPosition(voice.position)
-        const trk = voice.getCurrentTrack()!
+        const trk = (await voice.getCurrentTrack())!
 
         m.channel.send({
             embeds: [

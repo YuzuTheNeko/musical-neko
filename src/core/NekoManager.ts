@@ -11,9 +11,17 @@ import { NekoClient } from "./NekoClient";
 import config from "../config.json";
 import Parser from "ms-utility";
 import { execSync } from "child_process";
+import { Database } from "rhino.db";
+import { DatabaseTables } from "../typings/interfaces/DatabaseTables";
 
 export class NekoManager {
     lavalink: Lavalink
+    db = new Database<DatabaseTables>({
+        allowTimedData: false,
+        length: 100,
+        sanitize: true,
+        path: "./neko.db"
+    })
     permissions = new PermissionsBitField(
         config.permissions.reduce((x, y) => x + PermissionFlagsBits[y as keyof typeof PermissionFlagsBits] as bigint, 0n)
     )

@@ -2,22 +2,29 @@ import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Compon
 import { CoffeeTrack } from "lavacoffee";
 import { QUEUE_BACK, QUEUE_NEXT } from "../constants";
 import { NekoClient } from "../core/NekoClient";
+import { RawSongData } from "../typings/interfaces/RawSongData";
 import noop from "./noop";
+
+type Fn = (id: string, page: number) => string
 
 export default function(
     client: NekoClient,
     i: ButtonInteraction<'cached'> | Message<true>,
-    tracks: CoffeeTrack[],
-    page: number
+    tracks: (CoffeeTrack | RawSongData)[],
+    page: number,
+    name?: string,
+    backCustomId?: string,
+    nextCustomId?: string,
+    showRequested = true 
 ) {
     const pageCount = Math.floor(tracks.length / 10) + 1
     const user = i instanceof Message ? i.author : i.user
 
     const embed = client.embedSuccess(
         user,
-        `${i.guild.name} Song Queue`,
+        name ?? `${i.guild.name} Song Queue`,
         tracks.slice(page * 10 - 10, page * 10).map(
-            (track, y) => `**\`[${page * 10 - 10 + y + 1}]\`** [${track.title}](${track.url}) (Requested by ${track.requester})`
+            (track, y) => `**\`[${page * 10 - 10 + y + 1}]\`** [${track.title}](${track.url})${showRequested ? ` (Requested by ${track instanceof CoffeeTrack ? track.requester : `<@${track.userID}>`})` : ''}`
         ).join('\n') || 'Nothing to display'
     )
 
@@ -28,13 +35,13 @@ export default function(
             type: ComponentType.Button,
             disabled: page === 1,
             style: ButtonStyle.Primary,
-            custom_id: QUEUE_BACK(user.id, page)
+            custom_id: backCustomId ?? QUEUE_BACK(user.id, page)
         }),
         new ButtonBuilder({
             label: `▶️`,
             style: ButtonStyle.Primary,
             type: ComponentType.Button,
-            custom_id: QUEUE_NEXT(user.id, page),
+            custom_id: nextCustomId ?? QUEUE_NEXT(user.id, page),
             disabled: page === pageCount
         })
     )

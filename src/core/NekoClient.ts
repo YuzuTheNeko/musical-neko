@@ -4,6 +4,8 @@ import { NekoManager } from "./NekoManager";
 import config from "../config.json"
 import { Nullable } from "../typings/types/Nullable";
 import { argv } from "process";
+import { objectKeys } from "../functions/objectKeys";
+import { Tables } from "../constants";
 
 export class NekoClient extends Client<true> {
     manager = new NekoManager(this)
@@ -20,7 +22,13 @@ export class NekoClient extends Client<true> {
         return Number(argv[2])
     }
 
-    public login(): Promise<string> {
+    public async login(): Promise<string> {
+        for (const key of objectKeys(Tables)) {
+            const columns = Object.values(Tables[key])
+            this.manager.db.createTable(key).addColumns(columns)
+        }
+        
+        await this.manager.db.connect()
         return super.login(config.tokens[this.index])
     }
 

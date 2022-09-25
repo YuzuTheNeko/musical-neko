@@ -25,7 +25,7 @@ export default new Command({
     },
     execute: async function(m, [ n ]) {
         const voice = this.manager.lavalink.guild(m.guildId)
-        if (!voice || !voice.manageableBy(m.member!, undefined, m)) return;
+        if (!voice || !(await voice.manageableBy(m.member!, undefined, m))) return;
 
         if (!voice.setVolume(n)) {
             return void m.channel.send({

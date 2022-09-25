@@ -13,7 +13,7 @@ export default async function(client: NekoClient, i: ButtonInteraction<'cached'>
 
     if (!voice.hasMessage()) return;
 
-    if (!voice.manageableBy(i.member, undefined, i)) return;
+    if (!(await voice.manageableBy(i.member, undefined, i))) return;
     
     const modal = new ModalBuilder()
     .setTitle(`Volume Form`)

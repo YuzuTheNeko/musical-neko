@@ -13,7 +13,7 @@ export default async function(client: NekoClient, i: ModalSubmitInteraction<'cac
 
     if (!voice.hasMessage()) return; 
 
-    if (!voice.manageableBy(i.member, undefined, i)) return;
+    if (!(await voice.manageableBy(i.member, undefined, i))) return;
         
     const n = Number((i.components[0].components[0] as TextInputModalData).value)
     if (!voice.setVolume(n)) {

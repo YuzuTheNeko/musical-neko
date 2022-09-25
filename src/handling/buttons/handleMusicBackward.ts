@@ -13,10 +13,10 @@ export default async function(client: NekoClient, i: ButtonInteraction<'cached'>
 
     if (!voice.hasMessage()) return;
 
-    if (!voice.manageableBy(i.member, undefined, i)) return;
+    if (!(await voice.manageableBy(i.member, undefined, i))) return;
     
     const pos = voice.position - 1
-    const last = voice.getLastTrack()
+    const last = await voice.getLastTrack()
 
     if (!last) {
         return i.reply({

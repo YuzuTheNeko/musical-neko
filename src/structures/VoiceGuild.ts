@@ -14,6 +14,7 @@ import { CountType } from "../typings/enums/CountType";
 import { LoopState } from "../typings/enums/LoopState";
 import { PlayerState } from "../typings/enums/PlayerState";
 import { TrackEndReasons } from "../typings/enums/TrackEndReasons";
+import { RawSongData } from "../typings/interfaces/RawSongData";
 import { Nullable } from "../typings/types/Nullable";
 import { SkipFirstParameter } from "../typings/types/SkipParameters";
 import { InteractionResolvable } from "./Command";
@@ -37,7 +38,7 @@ export class VoiceGuild {
 
     idleTimeout: Nullable<NodeJS.Timeout> = null 
 
-    readonly queue = new Array<CoffeeTrack>()
+    readonly queue = new Array<CoffeeTrack | RawSongData>()
     readonly counters = new Collection<CountType, string[]>()
 
     reason: Nullable<TrackEndReasons> = null 
@@ -54,6 +55,14 @@ export class VoiceGuild {
         }
     }
 
+    toRawSongs(user: User): RawSongData[] {
+        return this.queue.map(c => ({
+            userID: user.id,
+            title: c.title,
+            url: c.url
+        }))
+    }
+
     clearFilters() {
         this.filters = new FilterUtils({})
         this.editFilters(() => {})
@@ -67,7 +76,7 @@ export class VoiceGuild {
         return this["24/7"]
     }
 
-    tryPlay() {
+    async tryPlay() {
         const player = this.player
         
         if (!this.isIdle() || !player) return false 
@@ -128,12 +137,12 @@ export class VoiceGuild {
         return client.manager.lavalink.add(guild.id)
     }
 
-    forcePlay(): boolean {
+    async forcePlay() {
         const player = this.player
 
         if (!player) return false;
 
-        const track = this.getCurrentTrack()
+        const track = await this.getCurrentTrack()
 
         if (!track) return false;
 
@@ -170,16 +179,18 @@ export class VoiceGuild {
         return this 
     }
 
-    getCurrentTrack(): CoffeeTrack | undefined {
-        return this.queue[this.position]
+    getCurrentTrack() {
+        return this.resolve(this.queue[this.position], this.position)
     }
 
-    getNextTrack(): CoffeeTrack | undefined {
-        return this.queue[this.position + 1]
+    async getNextTrack() {
+        const index = this.position + 1
+        return this.resolve(this.queue[index], index)
     }
 
-    getLastTrack(): CoffeeTrack | undefined {
-        return this.queue[this.position - 1]
+    async getLastTrack() {
+        const index = this.position - 1
+        return this.resolve(this.queue[index], index)
     }
 
     async send(embed: EmbedBuilder, components: ActionRowBuilder[] = []): Promise<Nullable<Message>> {
@@ -414,8 +425,21 @@ export class VoiceGuild {
         return true 
     }
 
-    manageableBy(member: GuildMember, track = this.getCurrentTrack(), i?: InteractionResolvable | Message) 
+    async resolve(track: undefined | VoiceGuild["queue"][number], index: number): Promise<CoffeeTrack | undefined> {
+        if (!track) return undefined
+        if (track instanceof CoffeeTrack) return track
+        const user = await this.client.users.fetch(track.userID)
+        const got = await this.lavalink.search(user, {
+            query: track.url
+        })
+        const trk = got!.tracks[0]
+        this.queue[index] = trk  
+        return trk 
+    }
+
+    async manageableBy(member: GuildMember, track?: CoffeeTrack, i?: InteractionResolvable | Message) 
     {
+        track ??= await this.getCurrentTrack()
         const bool =!track || (track && (member.permissions.any(this.client.manager.permissions) || this.getTrackRequester(track)?.id === member.id))
         if (!bool && i) {
             const embeds = [
@@ -453,11 +477,11 @@ export class VoiceGuild {
         return !!this.lastMessage
     }
 
-    seek(ms: number) {
+    async seek(ms: number) {
         const player = this.player
         if (!player) return false
 
-        const track = this.getCurrentTrack()
+        const track = await this.getCurrentTrack()
 
         if (!track || !track.isSeekable || ms < 0 || track.duration < ms) return false
 
@@ -514,9 +538,9 @@ export class VoiceGuild {
         }
     }
 
-    vote(by: GuildMember): boolean {
+    async vote(by: GuildMember) {
         const counter = this.skipCounter
-        const trk = this.getCurrentTrack()
+        const trk = await this.getCurrentTrack()
         if ((trk?.requester as User).id === by.id || by.permissions.any(this.client.manager.permissions)) {
             this.forceSkip()
             return true
@@ -527,6 +551,96 @@ export class VoiceGuild {
         return true 
     }
 
+    makeButtons() {
+        const rows = new Array<ActionRowBuilder<ButtonBuilder>>(
+            new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+                new ButtonBuilder({
+                    emoji: {
+                        name:'⏪'
+                    },
+                    style: ButtonStyle.Primary,
+                    custom_id: TRACK_FIRST,
+                    type: ComponentType.Button
+                }), 
+                new ButtonBuilder({
+                    emoji: {
+                        name:'◀️'
+                    },
+                    style: ButtonStyle.Primary,
+                    custom_id: TRACK_BACKWARD,
+                    type: ComponentType.Button
+                }),
+                new ButtonBuilder({
+                    emoji: {
+                        name:'⏸️'
+                    },
+                    style: ButtonStyle.Success,
+                    custom_id: TRACK_PAUSE,
+                    type: ComponentType.Button
+                }),
+                new ButtonBuilder({
+                    emoji: {
+                        name:'▶️'
+                    },
+                    style: ButtonStyle.Primary,
+                    custom_id: TRACK_FORWARD,
+                    type: ComponentType.Button
+                }),
+                new ButtonBuilder({
+                    emoji: {
+                        name:'⏩'
+                    },
+                    style: ButtonStyle.Primary,
+                    custom_id: TRACK_LAST,
+                    type: ComponentType.Button
+                })
+            ),
+            new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+                new ButtonBuilder({
+                    label: '🚪',
+                    style: ButtonStyle.Danger,
+                    custom_id: BOT_DISCONNECT,
+                    type: ComponentType.Button
+                }),
+                new ButtonBuilder({
+                    emoji: {
+                        name:'🔊'
+                    },
+                    style: ButtonStyle.Success,
+                    custom_id: TRACK_VOLUME,
+                    type: ComponentType.Button
+                }),
+                new ButtonBuilder({
+                    emoji: {
+                        name: '💟'
+                    },
+                    style: ButtonStyle.Danger,
+                    custom_id: TRACK_FAVORITE,
+                    type: ComponentType.Button
+                }),
+                new ButtonBuilder({
+                    emoji: {
+                        name:'🔁'
+                    },
+                    style: ButtonStyle.Success,
+                    custom_id: TRACK_REPLAY,
+                    type: ComponentType.Button
+                }),
+                new ButtonBuilder({
+                    emoji: {
+                        name: '⏭️'
+                    }, 
+                    style: ButtonStyle.Danger,
+                    custom_id: TRACK_SKIP,
+                    type: ComponentType.Button
+                }),
+            )
+        )
+
+        return rows 
+    }
     private async onTrackStart(...params: Parameters<LavaEvents["trackStart"]>) {
         this.status = PlayerState.Playing
         const [ player, track ] = params
@@ -545,93 +659,6 @@ export class VoiceGuild {
         if (ch) {
             const thumbnail = track.displayThumbnail('default')
 
-            const rows = new Array<ActionRowBuilder<ButtonBuilder>>(
-                new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder({
-                        emoji: {
-                            name:'⏪'
-                        },
-                        style: ButtonStyle.Primary,
-                        custom_id: TRACK_FIRST,
-                        type: ComponentType.Button
-                    }), 
-                    new ButtonBuilder({
-                        emoji: {
-                            name:'◀️'
-                        },
-                        style: ButtonStyle.Primary,
-                        custom_id: TRACK_BACKWARD,
-                        type: ComponentType.Button
-                    }),
-                    new ButtonBuilder({
-                        emoji: {
-                            name:'⏸️'
-                        },
-                        style: ButtonStyle.Success,
-                        custom_id: TRACK_PAUSE,
-                        type: ComponentType.Button
-                    }),
-                    new ButtonBuilder({
-                        emoji: {
-                            name:'▶️'
-                        },
-                        style: ButtonStyle.Primary,
-                        custom_id: TRACK_FORWARD,
-                        type: ComponentType.Button
-                    }),
-                    new ButtonBuilder({
-                        emoji: {
-                            name:'⏩'
-                        },
-                        style: ButtonStyle.Primary,
-                        custom_id: TRACK_LAST,
-                        type: ComponentType.Button
-                    })
-                ),
-                new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder({
-                        label: '🚪',
-                        style: ButtonStyle.Danger,
-                        custom_id: BOT_DISCONNECT,
-                        type: ComponentType.Button
-                    }),
-                    new ButtonBuilder({
-                        emoji: {
-                            name:'🔊'
-                        },
-                        style: ButtonStyle.Success,
-                        custom_id: TRACK_VOLUME,
-                        type: ComponentType.Button
-                    }),
-                    new ButtonBuilder({
-                        emoji: {
-                            name: '💟'
-                        },
-                        style: ButtonStyle.Danger,
-                        custom_id: TRACK_FAVORITE,
-                        type: ComponentType.Button
-                    }),
-                    new ButtonBuilder({
-                        emoji: {
-                            name:'🔁'
-                        },
-                        style: ButtonStyle.Success,
-                        custom_id: TRACK_REPLAY,
-                        type: ComponentType.Button
-                    }),
-                    new ButtonBuilder({
-                        emoji: {
-                            name: '⏭️'
-                        }, 
-                        style: ButtonStyle.Danger,
-                        custom_id: TRACK_SKIP,
-                        type: ComponentType.Button
-                    }),
-                )
-            )
-
             await this.send(
                 this.embed(
                     this.getTrackRequester(track)!, 
@@ -644,7 +671,7 @@ export class VoiceGuild {
                         } : undefined
                     }, 
                 ),
-                rows 
+                this.makeButtons()
             )
             .catch(noop)
         }

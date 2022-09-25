@@ -12,10 +12,6 @@ export default new Command({
     description: 'Disconnect the bot from voice channel',
     music: {
         mustMatchVoice: true,
-        state: [ 
-            PlayerState.Playing, 
-            PlayerState.Paused 
-        ],
         userInVoice: true 
     },
     execute: async function(m) {
