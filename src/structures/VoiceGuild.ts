@@ -1,6 +1,6 @@
 import { ActionRowBuilder, APIEmbedField, ButtonBuilder, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, EmbedBuilder, Guild, GuildMember, Message, MessageOptions, PermissionFlagsBits, SelectMenuBuilder, SelectMenuInteraction, StageChannel, TextBasedChannel, TextChannel, User, VoiceChannel } from "discord.js";
 import { CoffeeLava, CoffeeTrack, LavaEvents } from "lavacoffee";
-import { FilterUtils, LoadTypes, SearchQuery, SearchResult } from "lavacoffee/dist/utils";
+import { FilterUtils, LoadTypes, SearchQuery, SearchResult, TrackEndPayload } from "lavacoffee/dist/utils";
 import { runInThisContext } from "vm";
 import { BOT_DISCONNECT, IDLE_TIMEOUT, MAX_VOLUME, MIN_VOLUME, TRACK_BACKWARD, TRACK_ERROR, TRACK_FAVORITE, TRACK_FIRST, TRACK_FORWARD, TRACK_LAST, TRACK_PAUSE, TRACK_REPLAY, TRACK_SKIP, TRACK_VOLUME } from "../constants";
 import { Lavalink } from "../core/Lavalink";
@@ -647,8 +647,10 @@ export class VoiceGuild {
 
         return rows 
     }
+    
     private async onTrackStart(...params: Parameters<LavaEvents["trackStart"]>) {
         this.status = PlayerState.Playing
+
         const [ player, track ] = params
         if (!CoffeeTrack.isTrack(track)) {
             this.log(`An unresolved track was found, aborted.`)
@@ -686,11 +688,7 @@ export class VoiceGuild {
     private async onTrackError(...params: Parameters<LavaEvents["trackError"]>) {
         const [, track, { exception }] = params
         this.log(`There was an error while running track ${track.title} on guild ${this.guildID}: ${exception.message}, severity: ${exception.severity}`)
-
-        await this.advance()
         
-        const next = await this.getCurrentTrack()
-
         if (CoffeeTrack.isTrack(track)) {
             this.send(
                 this.embed(
@@ -702,12 +700,7 @@ export class VoiceGuild {
             )
         }
 
-        if (!next) {
-            this.status = PlayerState.Idle
-            return;
-        }
-
-        this.forcePlay()
+        this.forceSkip()
     }
 
     private onTrackStuck(...params: Parameters<LavaEvents["trackStuck"]>) {
