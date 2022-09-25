@@ -4,7 +4,9 @@ import noop from "../functions/noop";
 
 export default function(client: NekoClient, oldState: VoiceState, newState: VoiceState) {
     const voice = client.manager.lavalink.guild(newState.guild.id)
-    if (!voice) return;
+    if (!voice || !voice.voice) return;
+    if (voice.voice.id !== (oldState.channelId ?? newState.channelId)) return;
+    
     const members = (oldState.channel ?? newState.channel)!.members.filter(c => !c.user.bot)
     if (!members.size) {
         voice.send(
