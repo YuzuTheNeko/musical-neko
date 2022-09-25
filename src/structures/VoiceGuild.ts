@@ -147,7 +147,7 @@ export class VoiceGuild {
         if (!track) return false;
 
         player.queue.add(track)
-        player.play()
+        await player.play()
         
         return true 
     }
@@ -256,7 +256,7 @@ export class VoiceGuild {
         }
     }
 
-    async enqueue(result: Nullable<SearchResult>, m?: Message<true>): Promise<Nullable<undefined | string>> {
+    async enqueue(result: Nullable<SearchResult>, m?: Message<true>, pickFirst = false): Promise<Nullable<undefined | string>> {
         if (!result || !result.tracks.length) return null 
 
         const queue = this.queue
@@ -273,6 +273,12 @@ export class VoiceGuild {
             queue.push(result.tracks[0])
             return result.tracks[0].title
         } else if (result.loadType === LoadTypes.SearchResult && m) {
+            if (pickFirst) {
+                const trk = result.tracks[0]
+                queue.push(trk)
+                return trk.title
+            }
+            
             const embed = this.client.embedSuccess(
                 m.author,
                 `Search Results`,
@@ -677,13 +683,13 @@ export class VoiceGuild {
         }
     }
 
-    private onTrackError(...params: Parameters<LavaEvents["trackError"]>) {
+    private async onTrackError(...params: Parameters<LavaEvents["trackError"]>) {
         const [, track, { exception }] = params
         this.log(`There was an error while running track ${track.title} on guild ${this.guildID}: ${exception.message}, severity: ${exception.severity}`)
 
-        this.advance()
+        await this.advance()
         
-        const next = this.getCurrentTrack()
+        const next = await this.getCurrentTrack()
 
         if (CoffeeTrack.isTrack(track)) {
             this.send(
@@ -724,9 +730,9 @@ export class VoiceGuild {
 
     private async onTrackEnd(...params: Parameters<LavaEvents["trackEnd"]>) {
         this.counters.clear()
-        this.advance()
+        await this.advance()
 
-        const next = this.getCurrentTrack()
+        const next = await this.getCurrentTrack()
 
         await this.deleteMessage()
 
@@ -738,7 +744,7 @@ export class VoiceGuild {
         this.forcePlay()
     }
 
-    private advance() {
+    private async advance() {
         const reason = this.reason
 
         if (reason !== TrackEndReasons.Repositioned) {
@@ -754,7 +760,7 @@ export class VoiceGuild {
     
                 case LoopState.Queue: {
                     this.position++
-                    if (!this.getCurrentTrack()) {
+                    if (!(await this.getCurrentTrack())) {
                         this.position = 0
                     }
                 }
@@ -763,7 +769,7 @@ export class VoiceGuild {
 
         this.reason = null 
 
-        if (!this.getCurrentTrack()) {
+        if (!(await this.getCurrentTrack())) {
             this.onQueueEnd()
         }
     }

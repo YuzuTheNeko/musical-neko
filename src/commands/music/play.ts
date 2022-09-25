@@ -1,4 +1,4 @@
-import { ArgParser, StringFlagParser } from "arg-capturer";
+import { ArgParser, BooleanFlagParser, StringFlagParser } from "arg-capturer";
 import { LoadTypes, SearchPlatform } from "lavacoffee/dist/utils";
 import noop from "../../functions/noop";
 import removeBackticks from "../../functions/removeBackticks";
@@ -23,7 +23,8 @@ export default new Command({
         },
     ],
     flags: new ArgParser(false, {
-        source: new StringFlagParser()
+        source: new StringFlagParser(),
+        first: new BooleanFlagParser()
     }),
     music: {
         userInVoice: true,
@@ -51,7 +52,7 @@ export default new Command({
             source: extras.flags.source as SearchPlatform ?? 'yt'
         })
 
-        const title = await voice.enqueue(found, m)
+        const title = await voice.enqueue(found, m, extras.flags.first)
 
         if (title === undefined) {
             return;
