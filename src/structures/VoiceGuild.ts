@@ -291,7 +291,7 @@ export class VoiceGuild {
                 text: `Pick one in the select menu.`
             })
 
-            const id = `select_song_${m.author.id}` as const 
+            const id = `select_song_menu` as const 
 
             const msg = await m.channel.send({
                 embeds: [
@@ -319,7 +319,7 @@ export class VoiceGuild {
             const answer = await msg.awaitMessageComponent(
                 {
                     filter: i => {
-                        return i.customId === id
+                        return i.user.id === m.author.id && i.customId === id
                     },
                     time: 15_000
                 }
