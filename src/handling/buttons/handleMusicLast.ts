@@ -15,14 +15,14 @@ export default async function(client: NekoClient, i: ButtonInteraction<'cached'>
 
     if (!(await voice.manageableBy(i.member, undefined, i))) return;
     
-    voice.setPosition(0)
+    voice.setPosition(voice.queue.length - 1)
 
     i.reply({
         embeds: [
             client.embedSuccess(
                 i.user,
                 `Replaying Queue`,
-                `Successfully moved the player to the very beginning of the queue!`
+                `Successfully moved the player to the last track of the queue!`
             )
         ]
     })
