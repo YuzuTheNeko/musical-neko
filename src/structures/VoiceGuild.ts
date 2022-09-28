@@ -654,7 +654,8 @@ export class VoiceGuild {
     
     private async onTrackStart(...params: Parameters<LavaEvents["trackStart"]>) {
         this.status = PlayerState.Playing
-
+        this.cleanup()
+        
         const [ player, track ] = params
         if (!CoffeeTrack.isTrack(track)) {
             this.log(`An unresolved track was found, aborted.`)
@@ -666,6 +667,8 @@ export class VoiceGuild {
             this.destroy()
             return 
         }
+
+        
 
         const ch = this.channel
         if (ch) {
