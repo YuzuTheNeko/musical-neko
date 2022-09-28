@@ -427,7 +427,11 @@ export class VoiceGuild {
         if (!trackAt) return false 
 
         this.position = i
-        this.stop(TrackEndReasons.Repositioned) 
+        if (this.isIdle()) {
+            this.tryPlay()
+        } else {
+            this.stop(TrackEndReasons.Repositioned) 
+        }
         return true 
     }
 
