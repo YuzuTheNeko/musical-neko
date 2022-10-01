@@ -1,4 +1,4 @@
-import { ActionRowBuilder, APIEmbedField, ButtonBuilder, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, EmbedBuilder, Guild, GuildMember, Message, MessageOptions, PermissionFlagsBits, SelectMenuBuilder, SelectMenuInteraction, StageChannel, TextBasedChannel, TextChannel, User, VoiceChannel } from "discord.js";
+import { ActionRowBuilder, APIEmbedField, ButtonBuilder, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, EmbedBuilder, Guild, GuildMember, inlineCode, Message, MessageOptions, PermissionFlagsBits, roleMention, SelectMenuBuilder, SelectMenuInteraction, StageChannel, TextBasedChannel, TextChannel, User, VoiceChannel } from "discord.js";
 import { CoffeeLava, CoffeeTrack, LavaEvents } from "lavacoffee";
 import { FilterUtils, LoadTypes, SearchQuery, SearchResult, TrackEndPayload } from "lavacoffee/dist/utils";
 import { runInThisContext } from "vm";
@@ -450,13 +450,23 @@ export class VoiceGuild {
     async manageableBy(member: GuildMember, track?: CoffeeTrack, i?: InteractionResolvable | Message) 
     {
         track ??= await this.getCurrentTrack()
-        const bool =!track || (track && (member.permissions.any(this.client.manager.permissions) || this.getTrackRequester(track)?.id === member.id))
+        const bool = !track || (track && (member.permissions.any(this.client.manager.permissions) || this.getTrackRequester(track)?.id === member.id) || member.roles.cache.some(r => this.client.config.bypassRoles.includes(r.id as typeof this.client.config.bypassRoles[number])))
         if (!bool && i) {
             const embeds = [
                 this.client.embedError(
                     i instanceof Message ? i.author : i.user,
                     `Permission Error`,
-                    `Only the person who requested this track can do this!`
+                    `You are not allowed to do this, only ${track?.requester}${
+                        this.client.manager.permissions.bitfield !== 0n ? 
+                        `, a member with any of these permissions: ${this.client.manager.permissions.toArray().map(inlineCode).join(', ')}` :
+                        ''
+                    }${
+                        this.client.config.bypassRoles.length ? 
+                        `, a member with one of these roles: ${
+                            this.client.config.bypassRoles.map(roleMention).join(', ')
+                        }` :
+                        ''
+                    } can do this.`
                 )
             ]
 

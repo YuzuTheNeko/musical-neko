@@ -5,6 +5,7 @@ import { NekoClient } from "../core/NekoClient";
 import log from "../functions/log";
 import noop from "../functions/noop";
 import separatePascalCase from "../functions/separatePascalCase";
+import toTitleCase from "../functions/toTitleCase";
 import { ArgType } from "../typings/enums/ArgType";
 import { PlayerState } from "../typings/enums/PlayerState";
 import { RejectArgReason } from "../typings/enums/RejectArgReason";
@@ -146,7 +147,7 @@ export class Command<Args extends [...ArgData[]] = ArgData[], Flags = {}> {
 
             switch (arg.type) {
                 case ArgType.Enum: {
-                    const got = arg.enum![data as keyof typeof arg.enum]
+                    const got = arg.enum![toTitleCase(data) as keyof typeof arg.enum]
                     if (got === undefined) return reject(RejectArgReason.Choice)
                     data = got 
                     break
