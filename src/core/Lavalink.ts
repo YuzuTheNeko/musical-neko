@@ -71,8 +71,9 @@ export class Lavalink {
         this.server.on("nodeCreate", this.onNodeConnect.bind(this))
         this.server.on("nodeClose", this.onNodeDisconnect.bind(this))
         this.server.on("nodeError", this.onNodeError.bind(this))
-        
+
         this.server.on("trackStart", this.onTrackStart.bind(this))
+        this.server.on('queueEnd', this.onTrackEnd.bind(this))
         this.server.on("trackEnd", this.onTrackEnd.bind(this))
         this.server.on("trackError", this.onTrackError.bind(this))
         this.server.on("trackStuck", this.onTrackStuck.bind(this))
@@ -104,7 +105,7 @@ export class Lavalink {
     }
 
     private onTrackEnd(...params: Parameters<MoonlinkEvents["trackEnd"]>) {
-        const [ player  ] = params
+        const [ player ] = params
         
         const voice = this.#checkVoice(player)
 
