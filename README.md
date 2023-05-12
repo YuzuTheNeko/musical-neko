@@ -20,7 +20,7 @@ Place this file in `src` folder and name it `config.json`:
     "lavalink": {
         "nodes": [
             {
-                "name": "name for the node",
+                "identifier": "name for the node",
                 "port": 2333,
                 "ip": "lavalink server ip",
                 "password": "youshallnotpass"
