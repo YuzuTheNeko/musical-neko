@@ -12,7 +12,7 @@ export default async function(client: NekoClient, interaction: AutocompleteInter
         return void interaction.respond([]).catch(noop)
     }
 
-    const search = await client.manager.lavalink.search(null, {
+    const search = await client.manager.lavalink.search(interaction.user, {
         query: option
     })
 

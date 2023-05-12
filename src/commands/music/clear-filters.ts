@@ -11,9 +11,10 @@ export default new Command({
         userInVoice: true 
     },
     execute: async function(m) {
-        const voice = this.manager.lavalink.guild(m.guildId)
+   /**      const voice = this.manager.lavalink.guild(m.guildId)
         if (!voice) return;
 
+        voice.editFilters(c => c.rotation.setRotationSpeed(0.5))
         voice.clearFilters()
 
         m.channel.send({
@@ -26,5 +27,6 @@ export default new Command({
             ]
         })   
         .catch(noop)
+        */
     }
 })

@@ -1,0 +1,65 @@
+[
+    {
+        "cooldown": "1m",
+        "name": "trabajador", 
+        "tiers":[
+            {
+                "cooldown": "1m",
+                "id": "000000", 
+                "precio": 5000
+            },
+            {
+                "cooldown": "1m",
+                "id": "1111111", 
+                "precio": 8000
+            },
+            {
+                "cooldown": "1m",
+                "id": "22222", 
+                "precio": 10000
+            }
+        ]
+    },
+    {
+        "name": "asaltante",
+        "cooldown": "1m",
+        "tiers": [
+            {
+                "id": "000000",
+                "cooldown": "1m",
+                "precio": 5000
+            },
+            {
+                "id": "1111111",
+                "cooldown": "1m",
+                "precio": 8000
+            },
+            {
+                "id": "22222", 
+                "cooldown": "1m",
+                "precio": 10000
+            }
+        ]
+    },
+    {
+        "cooldown": "1m",
+        "name": "ludopata", 
+        "tiers": [
+            {
+                "id": "000000", 
+                "precio": 5000,
+                "cooldown": "1m"
+            },
+            {
+                "id": "1111111",
+                "cooldown": "1m",
+                "precio": 8000
+            },
+            {
+                "id": "22222", 
+                "precio": 10000,
+                "cooldown": "1m"
+            }
+        ]
+    }
+]

@@ -1,5 +1,5 @@
 import { ArgParser } from "arg-capturer";
-import { APIApplicationCommand, APIApplicationCommandOption, APIApplicationCommandSubcommandOption, APIEmbedField, ApplicationCommandChoicesData, ApplicationCommandOptionChoiceData, ApplicationCommandOptionType, AutocompleteInteraction, ButtonInteraction, ChatInputCommandInteraction, EmbedBuilder, Interaction, InteractionResponseFields, Message, ModalSubmitInteraction, SelectMenuInteraction } from "discord.js";
+import { APIApplicationCommand, APIApplicationCommandOption, APIApplicationCommandSubcommandOption, APIEmbedField, ApplicationCommandChoicesData, ApplicationCommandOptionChoiceData, ApplicationCommandOptionType, AutocompleteInteraction, ButtonInteraction, ChatInputCommandInteraction, EmbedBuilder, Interaction, Message, ModalSubmitInteraction, SelectMenuInteraction } from "discord.js";
 import { VOICE_ERROR } from "../constants";
 import { NekoClient } from "../core/NekoClient";
 import log from "../functions/log";
@@ -13,7 +13,7 @@ import { ArgData } from "../typings/interfaces/ArgData";
 import { CommandData } from "../typings/interfaces/CommandData";
 
 export type InteractionResolvable = (
-    Interaction<'cached'> & InteractionResponseFields<'cached'>
+    Interaction<'cached'> & { reply: any }
 ) | ModalSubmitInteraction<'cached'> | ButtonInteraction<'cached'>
 
 

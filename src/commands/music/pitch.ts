@@ -23,7 +23,7 @@ export default new Command({
         userInVoice: true 
     },
     execute: async function(m, [ v ]) {
-        const voice = this.manager.lavalink.guild(m.guildId)
+        /**const voice = this.manager.lavalink.guild(m.guildId)
         if (!voice) return;
 
         voice.editFilters(f => f.timescale.setPitch(v))
@@ -36,6 +36,6 @@ export default new Command({
                 )
             ]
         })   
-        .catch(noop)
+        .catch(noop)*/
     }
 })

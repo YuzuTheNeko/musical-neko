@@ -1,5 +1,4 @@
 import { ArgParser, BooleanFlagParser, StringFlagParser } from "arg-capturer";
-import { LoadTypes, SearchPlatform } from "lavacoffee/dist/utils";
 import noop from "../../functions/noop";
 import removeBackticks from "../../functions/removeBackticks";
 import { Command } from "../../structures/Command";
@@ -49,7 +48,7 @@ export default new Command({
 
         const found = await voice.search(m.author, {
             query,
-            source: extras.flags.source as SearchPlatform ?? 'yt'
+            source: extras.flags.source ?? 'ytsearch'
         })
 
         const title = await voice.enqueue(found, m, extras.flags.first)
@@ -77,7 +76,7 @@ export default new Command({
             embeds: [
                 this.embedSuccess(
                     m.author,
-                    found?.loadType === LoadTypes.PlaylistLoaded ? `Playlist Added` : `Track Added`,
+                    found?.loadType === 'PLAYLIST_LOADED' ? `Playlist Added` : `Track Added`,
                     `Successfully added \`${removeBackticks(title)}\` to the queue`
                 )
             ]

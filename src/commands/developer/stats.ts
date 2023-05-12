@@ -31,7 +31,7 @@ export default new Command({
             },
             {
                 name: `Players`,
-                value: stats.players.toLocaleString(),
+                value: stats.toLocaleString(),
                 inline: true 
             },
             {

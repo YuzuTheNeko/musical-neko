@@ -32,14 +32,14 @@ export default new Command({
 
         embed.setURL(trk.url)
 
-        const thumb = trk.displayThumbnail('default')
+        const thumb = trk.thumbnail
         if (thumb) embed.setThumbnail(thumb)
 
         embed.addFields([
             {
                 name: `Playback Position`,
                 value: this.manager.parser.parseToString(
-                    voice.player!.position, { and: true, limit: 2 }
+                    voice.player!.current.position, { and: true, limit: 2 }
                 ) || '0 seconds'
             },
             {

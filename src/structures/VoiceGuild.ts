@@ -1,6 +1,4 @@
-import { ActionRowBuilder, APIEmbedField, ButtonBuilder, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, EmbedBuilder, Guild, GuildMember, inlineCode, Message, MessageOptions, PermissionFlagsBits, roleMention, SelectMenuBuilder, SelectMenuInteraction, StageChannel, TextBasedChannel, TextChannel, User, VoiceChannel } from "discord.js";
-import { CoffeeLava, CoffeeTrack, LavaEvents } from "lavacoffee";
-import { FilterUtils, LoadTypes, SearchQuery, SearchResult, TrackEndPayload } from "lavacoffee/dist/utils";
+import { ActionRowBuilder, APIEmbedField, ButtonBuilder, ButtonInteraction, ButtonStyle, Collection, ColorResolvable, Colors, ComponentType, EmbedBuilder, Guild, GuildMember, inlineCode, Message, PermissionFlagsBits, roleMention, SelectMenuBuilder, SelectMenuInteraction, StageChannel, StringSelectMenuBuilder, TextBasedChannel, TextChannel, User, VoiceChannel } from "discord.js";
 import { runInThisContext } from "vm";
 import { BOT_DISCONNECT, IDLE_TIMEOUT, MAX_VOLUME, MIN_VOLUME, TRACK_BACKWARD, TRACK_ERROR, TRACK_FAVORITE, TRACK_FIRST, TRACK_FORWARD, TRACK_LAST, TRACK_PAUSE, TRACK_REPLAY, TRACK_SKIP, TRACK_VOLUME } from "../constants";
 import { Lavalink } from "../core/Lavalink";
@@ -18,13 +16,13 @@ import { RawSongData } from "../typings/interfaces/RawSongData";
 import { Nullable } from "../typings/types/Nullable";
 import { SkipFirstParameter } from "../typings/types/SkipParameters";
 import { InteractionResolvable } from "./Command";
+import { MoonlinkEvents, MoonlinkPlayer, MoonlinkTrack, SearchResult } from "moonlink.js";
 
 /**
  * Handles nearly all data for a lavalink voice guild.
  */
 export class VoiceGuild {
     volume = 100
-    filters = new FilterUtils({})
     
     channelID?: string
     voiceID?: string
@@ -38,7 +36,7 @@ export class VoiceGuild {
 
     idleTimeout: Nullable<NodeJS.Timeout> = null 
 
-    readonly queue = new Array<CoffeeTrack | RawSongData>()
+    readonly queue = new Array<MoonlinkTrack | RawSongData>()
     readonly counters = new Collection<CountType, string[]>()
 
     reason: Nullable<TrackEndReasons> = null 
@@ -64,8 +62,7 @@ export class VoiceGuild {
     }
 
     clearFilters() {
-        this.filters = new FilterUtils({})
-        this.editFilters(() => {})
+
     }
 
     get guild() {
@@ -152,14 +149,14 @@ export class VoiceGuild {
         return true 
     }
 
-    getTrackRequester(track: CoffeeTrack): Nullable<User> {
-        return track.requester as User
+    async getTrackRequester(track: MoonlinkTrack) {
+        return this.client.users.fetch(track.requester as string)
     }
 
     setVoice(channel: Nullable<VoiceChannel | StageChannel>) {        
         const old = this.voiceID
         this.voiceID = channel?.id
-        const player = this.createPlayer(this.voiceID)
+        const player = this.player
         if (!player) return null 
 
         // Voice channel is null, destroy
@@ -167,12 +164,16 @@ export class VoiceGuild {
             this.destroy()
         } else if (old !== this.voiceID) {
             // Voice channel changed
-            player.voiceID = this.voiceID
-            player.connect()
+            player.voiceChannel = this.voiceID
+            player.connect({
+                setDeaf: true
+            })
         } else {
             // Only connect is voice is not connected.
-            if (!player.voiceConnected) {
-                player.connect()
+            if (!player.connected) {
+                player.connect({
+                    setDeaf: true
+                })
             }
         }
 
@@ -193,14 +194,14 @@ export class VoiceGuild {
         return this.resolve(this.queue[index], index)
     }
 
-    async send(embed: EmbedBuilder, components: ActionRowBuilder[] = []): Promise<Nullable<Message>> {
+    async send(embed: EmbedBuilder, components: ActionRowBuilder<any>[] = []): Promise<Nullable<Message>> {
         this.lastMessage?.delete().catch(noop)
         
         const msg = await this.channel?.send({
             embeds: [
                 embed
             ],
-            components: components as MessageOptions["components"]
+            components
         })
         .catch(noop)
 
@@ -209,10 +210,6 @@ export class VoiceGuild {
         this.lastMessage = msg 
 
         return msg 
-    }
-
-    get node() {
-        return this.player?.node
     }
 
     private async onIdleTimeout() {
@@ -266,13 +263,13 @@ export class VoiceGuild {
         // Some activity was made, ensure idle timeout is cleared.
         this.cleanup()
 
-        if (result.loadType === LoadTypes.PlaylistLoaded) {
+        if (result.loadType === 'PLAYLIST_LOADED') {
             queue.push(...result.tracks)
-            return `${result.playlist!.name} (${toPluralAmount('track', result.tracks.length)})`
-        } else if (result.loadType === LoadTypes.TrackLoaded || (!m && result.loadType === LoadTypes.SearchResult)) {
+            return `${result.playlistInfo!.name} (${toPluralAmount('track', result.tracks.length)})`
+        } else if (result.loadType === 'TRACK_LOADED' || (!m && result.loadType === 'SEARCH_RESULT')) {
             queue.push(result.tracks[0])
             return result.tracks[0].title
-        } else if (result.loadType === LoadTypes.SearchResult && m) {
+        } else if (result.loadType === 'SEARCH_RESULT' && m) {
             if (pickFirst) {
                 const trk = result.tracks[0]
                 queue.push(trk)
@@ -298,8 +295,8 @@ export class VoiceGuild {
                     embed
                 ],
                 components: [
-                    new ActionRowBuilder<SelectMenuBuilder>().addComponents(
-                        new SelectMenuBuilder({
+                    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+                        new StringSelectMenuBuilder({
                             maxValues: 1,
                             minValues: 1,
                             customId: id,
@@ -349,7 +346,14 @@ export class VoiceGuild {
     }
 
     get player() {
-        return this.lavalink["server"].get(this.guildID)
+        const existing = this.lavalink['server'].players.get(this.guildID)
+        if (existing) return existing
+        return this.lavalink["server"].players.create({
+            autoPlay: false,
+            guildId: this.guildID,
+            textChannel: this.channelID!,
+            voiceChannel: this.voiceID!
+        })
     }
 
     get voice() {
@@ -363,22 +367,6 @@ export class VoiceGuild {
     setChannel(ch: Nullable<TextBasedChannel>) {
         this.channelID = ch?.id
         return this 
-    }
-
-    createPlayer(voiceID?: string) {
-        const existing = this.player
-        if (existing) return existing
-
-        if (!this.lavalink.isAnyNodeAvailable()) return null 
-        
-        return this.lavalink["server"].create({
-            guildID: this.guildID,
-            node: this.lavalink["server"].leastLoadNode!.name,
-            volume: this.volume,
-            selfDeaf: true,
-            selfMute: false,
-            voiceID
-        })
     }
 
     get lavalink() {
@@ -401,13 +389,8 @@ export class VoiceGuild {
         return this 
     }
 
-    editFilters(edit: (f: FilterUtils) => any) {
-        edit(this.filters) 
-        if (this.player) {
-            this.player.filters = this.filters.build()
-            this.player.patchFilters()
-        }
-        return this 
+    editFilters() {
+
     }
 
     async deleteMessage() {
@@ -435,9 +418,9 @@ export class VoiceGuild {
         return true 
     }
 
-    async resolve(track: undefined | VoiceGuild["queue"][number], index: number): Promise<CoffeeTrack | undefined> {
+    async resolve(track: undefined | VoiceGuild["queue"][number], index: number): Promise<MoonlinkTrack | undefined> {
         if (!track) return undefined
-        if (track instanceof CoffeeTrack) return track
+        if (track instanceof MoonlinkTrack) return track
         const user = await this.client.users.fetch(track.userID)
         const got = await this.lavalink.search(user, {
             query: track.url
@@ -447,10 +430,10 @@ export class VoiceGuild {
         return trk 
     }
 
-    async manageableBy(member: GuildMember, track?: CoffeeTrack, i?: InteractionResolvable | Message) 
+    async manageableBy(member: GuildMember, track?: MoonlinkTrack, i?: InteractionResolvable | Message) 
     {
         track ??= await this.getCurrentTrack()
-        const bool = !track || (track && (member.permissions.any(this.client.manager.permissions) || this.getTrackRequester(track)?.id === member.id) || member.roles.cache.some(r => this.client.config.bypassRoles.includes(r.id as typeof this.client.config.bypassRoles[number])))
+        const bool = !track || (track && (member.permissions.any(this.client.manager.permissions) || (await this.getTrackRequester(track))?.id === member.id) || member.roles.cache.some(r => this.client.config.bypassRoles.includes(r.id as typeof this.client.config.bypassRoles[number])))
         if (!bool && i) {
             const embeds = [
                 this.client.embedError(
@@ -519,14 +502,14 @@ export class VoiceGuild {
 
     pause() {
         if (!this.isPlaying()) return false
-        this.player?.pause(true)
+        this.player?.pause()
         this.status = PlayerState.Paused
         return true 
     }
 
     resume() {
         if (this.isPlaying()) return false
-        this.player?.pause(false)
+        this.player?.resume()
         this.status = PlayerState.Playing
         return true 
     }
@@ -662,31 +645,24 @@ export class VoiceGuild {
         return rows 
     }
     
-    private async onTrackStart(...params: Parameters<LavaEvents["trackStart"]>) {
+    private async onTrackStart(...params: Parameters<MoonlinkEvents["trackStart"]>) {
         this.status = PlayerState.Playing
         this.cleanup()
         
         const [ player, track ] = params
-        if (!CoffeeTrack.isTrack(track)) {
-            this.log(`An unresolved track was found, aborted.`)
-            return 
-        }
 
         if (!this.inVoice()) {
-            this.log(`Player for guild ${player.guildID} has been destroyed, there was no voice channel.`)
+            this.log(`Player for guild ${player.guildId} has been destroyed, there was no voice channel.`)
             this.destroy()
             return 
         }
 
-        
-
         const ch = this.channel
         if (ch) {
-            const thumbnail = track.displayThumbnail('default')
-
+            const thumbnail = track.thumbnail
             await this.send(
                 this.embed(
-                    this.getTrackRequester(track)!, 
+                    await this.getTrackRequester(track)!, 
                     'Blue', 
                     'Track Start', 
                     `Playing now [${track.title}](${track.url})`,
@@ -702,43 +678,40 @@ export class VoiceGuild {
         }
     }
 
-    private async onTrackError(...params: Parameters<LavaEvents["trackError"]>) {
-        const [, track, { exception }] = params
-        this.log(`There was an error while running track ${track.title} on guild ${this.guildID}: ${exception.message}, severity: ${exception.severity}`)
+    private async onTrackError(...params: Parameters<MoonlinkEvents["trackError"]>) {
+        const [, track ] = params
         
-        if (CoffeeTrack.isTrack(track)) {
-            this.send(
-                this.embed(
-                    this.getTrackRequester(track)!,
-                    'Red',
-                    TRACK_ERROR,
-                    `There was an error while attempting to play track \`${removeBackticks(track.title)}\`:\n\`\`\`\n${exception.message}\`\`\`\nThe next song will be played (if any)`
-                )
+        this.log(`There was an error while running track ${track.title} on guild ${this.guildID}`)
+        
+        this.send(
+            this.embed(
+                await this.getTrackRequester(track)!,
+                'Red',
+                TRACK_ERROR,
+                `There was an error while attempting to play track \`${removeBackticks(track.title)}\`\nThe next song will be played (if any)`
             )
-        }
+        )
 
         this.forceSkip()
     }
 
-    private onTrackStuck(...params: Parameters<LavaEvents["trackStuck"]>) {
+    private async onTrackStuck(...params: Parameters<MoonlinkEvents["trackStuck"]>) {
         const [ player, track ] = params
         
-        if (CoffeeTrack.isTrack(track)) {
-            this.send(
-                this.embed(
-                    this.getTrackRequester(track)!,
-                    'Red',
-                    TRACK_ERROR,
-                    `Track \`${removeBackticks(track.title)}\` got stuck. The next song will be played (if any)`
-                )
+        this.send(
+            this.embed(
+                await this.getTrackRequester(track)!,
+                'Red',
+                TRACK_ERROR,
+                `Track \`${removeBackticks(track.title)}\` got stuck. The next song will be played (if any)`
             )
-        }
+        )
 
         this.forceSkip()
         this.log(`Track ${track.title} got stuck for guild ${this.guildID}, force skipped.`)
     }
 
-    private async onTrackEnd(...params: Parameters<LavaEvents["trackEnd"]>) {
+    private async onTrackEnd(...params: Parameters<MoonlinkEvents["trackEnd"]>) {
         this.counters.clear()
         await this.advance()
 

@@ -1,35 +1,32 @@
-import { CoffeeLava, CoffeePlayer, CoffeeTrack, LavaEvents, UnresolvedTrack } from "lavacoffee";
-import { LavaOptions } from "lavacoffee/dist/utils/typings";
 import { NekoClient } from "./NekoClient";
 import config from "../config.json"
-import { Collection, GatewayDispatchEvents, User } from "discord.js";
+import { Collection, User } from "discord.js";
 import log from "../functions/log";
 import { VoiceGuild } from "../structures/VoiceGuild";
 import noop from "../functions/noop";
 import { SkipFirstParameter } from "../typings/types/SkipParameters";
 import { Nullable } from "../typings/types/Nullable";
-import { SearchQuery } from "lavacoffee/dist/utils";
+import { MoonlinkEvents, MoonlinkManager, MoonlinkNode, MoonlinkPlayer, NodeStats, Nodes, SearchQuery } from "moonlink.js";
 
 export class Lavalink {
     // This class is not extended due to a strange bug in the library 
     // That reassigns this class to the one extending it.
-    private readonly server: CoffeeLava
+    private readonly server: MoonlinkManager
     readonly guilds = new Collection<string, VoiceGuild>()
 
     constructor(private readonly client: NekoClient) {
-        this.server = new CoffeeLava(Lavalink.createOptions(client))
-
-        for (const node of config.lavalink.nodes) {
-            this.server.add({
-                url: `${node.ip}:${node.port}`,
+        this.server = new MoonlinkManager(config.lavalink.nodes.map(
+            node => ({
+                host: node.ip,
                 secure: false,
                 ...node 
             })
-        }
-    }
-
-    get stats() {
-        return this.server.leastLoadNode!.stats
+        ), {
+            spotify: {},
+            plugins: []
+        }, (guildID: string, voice: any) => {
+            return client.ws.shards.get(client.guilds.cache.get(guildID)!.shardId)!.send(JSON.parse(voice))
+        })
     }
 
     add(...params: SkipFirstParameter<ConstructorParameters<typeof VoiceGuild>>) {
@@ -45,39 +42,34 @@ export class Lavalink {
         return this.guilds.get(guildID)
     }
 
-    private static createOptions(client: NekoClient): LavaOptions {
-        return {
-            defaultSearchPlatform: "yt",
-            clientName: "neko",
-            autoPlay: false,
-            autoResume: true,
-            send: (guildID, voice) => client.ws.shards.get(client.guilds.cache.get(guildID)!.shardId)!.send(voice)
-        }
+    get stats() {
+        return this.server.leastUsedNodes!.stats as NodeStats
     }
 
-    search(user: Nullable<User>, query: SearchQuery) {
-        if (!this.isAnyNodeAvailable()) return null 
-        return this.server.search(query, user).catch(() => null)
+    async search(user: User, query: SearchQuery) { 
+        const t = await this.server.search(query).catch(() => null)
+            t?.tracks.map(c => c.setRequester(user.id))
+        return t 
     }
 
-    private onNodeConnect(...params: Parameters<LavaEvents["nodeConnect"]>) {
+    private onNodeConnect(...params: Parameters<MoonlinkEvents["nodeCreate"]>) {
         const [ node ] = params
-        this.log(`Node ${node.name} is ready!`)
+        this.log(`Node ${node.identifier} is ready!`)
     }
 
-    private onNodeDisconnect(...params: Parameters<LavaEvents["nodeDisconnect"]>) {
-        const [ node, { reason, code } ] = params
-        this.log(`Node ${node.name} has disconnected, reason: ${reason}, code ${code}`)
+    private onNodeDisconnect(...params: Parameters<MoonlinkEvents["nodeClose"]>) {
+        const [ node, code, reason ] = params
+        this.log(`Node ${node.identifier} has disconnected, reason: ${reason}, code ${code}`)
     }
 
-    private onNodeError(...params: Parameters<LavaEvents["nodeError"]>) {
+    private onNodeError(...params: Parameters<MoonlinkEvents["nodeError"]>) {
         const [ node, error ] = params
-        this.log(`Node ${node.name} has thrown an error: ${error.message}\nStack: ${error.stack}`)
+        this.log(`Node ${node.identifier} has thrown an error: ${error.message}\nStack: ${error.stack}`)
     }
 
     public start(): void {
-        this.server.on("nodeConnect", this.onNodeConnect.bind(this))
-        this.server.on("nodeDisconnect", this.onNodeDisconnect.bind(this))
+        this.server.on("nodeCreate", this.onNodeConnect.bind(this))
+        this.server.on("nodeClose", this.onNodeDisconnect.bind(this))
         this.server.on("nodeError", this.onNodeError.bind(this))
         
         this.server.on("trackStart", this.onTrackStart.bind(this))
@@ -85,12 +77,12 @@ export class Lavalink {
         this.server.on("trackError", this.onTrackError.bind(this))
         this.server.on("trackStuck", this.onTrackStuck.bind(this))
 
-        this.client.on("raw", d => this.server.updateVoiceData(d))
+        this.client.on("raw", d => void this.server.packetUpdate(d))
 
         this.server.init(this.client.user!.id)    
     }
 
-    private onTrackStart(...params: Parameters<LavaEvents["trackStart"]>) {
+    private onTrackStart(...params: Parameters<MoonlinkEvents["trackStart"]>) {
         const [ player  ] = params
         
         const voice = this.#checkVoice(player)
@@ -100,18 +92,18 @@ export class Lavalink {
         voice["onTrackStart"](...params)
     }
 
-    #checkVoice(player: CoffeePlayer): false | VoiceGuild {
-        const voice = this.guild(player.guildID)
+    #checkVoice(player: MoonlinkPlayer): false | VoiceGuild {
+        const voice = this.guild(player.guildId)
         if (!voice) {
             player.destroy()
-            this.log(`No voice structure for guild ${player.guildID} found, player destroyed.`)
+            this.log(`No voice structure for guild ${player.guildId} found, player destroyed.`)
             return false;
         } 
 
         return voice
     }
 
-    private onTrackEnd(...params: Parameters<LavaEvents["trackEnd"]>) {
+    private onTrackEnd(...params: Parameters<MoonlinkEvents["trackEnd"]>) {
         const [ player  ] = params
         
         const voice = this.#checkVoice(player)
@@ -121,11 +113,7 @@ export class Lavalink {
         voice["onTrackEnd"](...params)
     }
 
-    isAnyNodeAvailable() {
-        return config.lavalink.nodes.some(c => this.server.nodes.get(c.name)!.connected)
-    }
-
-    private onTrackStuck(...params: Parameters<LavaEvents["trackStuck"]>) {
+    private onTrackStuck(...params: Parameters<MoonlinkEvents["trackStuck"]>) {
         const [ player  ] = params
         
         const voice = this.#checkVoice(player)
@@ -135,7 +123,7 @@ export class Lavalink {
         voice["onTrackStuck"](...params)
     }
 
-    private onTrackError(...params: Parameters<LavaEvents["trackError"]>) {
+    private onTrackError(...params: Parameters<MoonlinkEvents["trackError"]>) {
         const [ player  ] = params
         
         const voice = this.#checkVoice(player)
