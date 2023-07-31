@@ -692,6 +692,7 @@ export class VoiceGuild {
             )
         )
 
+        if (this.loop === LoopState.Song) this.position++
         this.forceSkip()
     }
 
